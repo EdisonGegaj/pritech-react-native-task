@@ -11,6 +11,7 @@ export interface Task {
 interface TaskContextType {
   tasks: Task[];
   loading: boolean;
+  addTask: (title: string, description: string) => void;
 }
 
 export const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -31,21 +32,31 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       const apiTasks: Task[] = data.map((item: any) => ({
         id: `api-${item.id}`,
         title: item.title,
-        description: 'Detyre e marrë automatikisht nga API Publik.',
+        description: 'Detyrë e marrë automatikisht nga API.',
         status: item.completed,
         createdAt: new Date().toLocaleDateString('sq-AL')
       }));
-
       setTasks(apiTasks);
     } catch (error) {
-      console.log("Gabim gjatë fetch-it nga API:", error);
+      console.log("Gabim gjatë fetch-it", error);
     } finally {
       setLoading(false);
     }
   };
 
+  const addTask = (title: string, description: string) => {
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title,
+      description,
+      status: false,
+      createdAt: new Date().toLocaleDateString('sq-AL')
+    };
+    setTasks([newTask, ...tasks]);
+  };
+
   return (
-    <TaskContext.Provider value={{ tasks, loading }}>
+    <TaskContext.Provider value={{ tasks, loading, addTask }}>
       {children}
     </TaskContext.Provider>
   );
