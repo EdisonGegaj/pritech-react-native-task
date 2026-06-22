@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useContext, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { TaskContext } from '../context/TaskContext';
@@ -6,6 +7,7 @@ export default function HomeScreen() {
   const context = useContext(TaskContext);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const router = useRouter();
 
   if (!context || context.loading) {
     return (
@@ -47,12 +49,23 @@ export default function HomeScreen() {
             </View>
             
             <View style={styles.actions}>
-              <TouchableOpacity onPress={() => context.toggleTaskStatus(item.id)} style={{ marginRight: 15 }}>
-                <Text style={{ fontSize: 20 }}>{item.status ? '✅' : '⬜'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => context.deleteTask(item.id)}>
-                <Text style={{ fontSize: 18, color: 'red' }}>🗑️</Text>
-              </TouchableOpacity>
+              <TouchableOpacity 
+              style={{ flex: 1 }} 
+              onPress={() => router.push({
+                pathname: '/details',
+                params: { 
+                  id: item.id, 
+                  title: item.title, 
+                  description: item.description, 
+                  status: item.status ? 'true' : 'false', 
+                  createdAt: item.createdAt 
+                }
+              })}
+            >
+              <Text style={[styles.taskTitle, item.status && styles.completedText]}>{item.title}</Text>
+              <Text style={styles.taskDescription} numberOfLines={1}>{item.description}</Text>
+              <Text style={styles.taskDate}>{item.createdAt}</Text>
+            </TouchableOpacity>
             </View>
           </View>
         )}
@@ -70,8 +83,8 @@ const styles = StyleSheet.create({
   buttonText: { color: '#FFF', fontWeight: 'bold' },
   taskCard: { flexDirection: 'row', backgroundColor: '#FFF', padding: 15, borderRadius: 10, marginBottom: 12, elevation: 2, alignItems: 'center' },
   taskTitle: { fontSize: 18, fontWeight: 'bold', color: '#2C3E50' },
-  completedText: { textDecorationLine: 'line-through', color: '#BDC3C7' },
   taskDescription: { fontSize: 14, color: '#7F8C8D', marginTop: 5 },
   taskDate: { fontSize: 12, color: '#BDC3C7', marginTop: 8 },
-  actions: { flexDirection: 'row', alignItems: 'center' }
+  completedText: { textDecorationLine: 'line-through', color: '#BDC3C7' },
+  actions: { flexDirection: 'row', alignItems: 'center' },
 });
