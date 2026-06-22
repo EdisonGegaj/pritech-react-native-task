@@ -40,9 +40,20 @@ export default function HomeScreen() {
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.taskCard}>
-            <Text style={styles.taskTitle}>{item.title}</Text>
-            <Text style={styles.taskDescription}>{item.description}</Text>
-            <Text style={styles.taskDate}>{item.createdAt}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.taskTitle, item.status && styles.completedText]}>{item.title}</Text>
+              <Text style={styles.taskDescription}>{item.description}</Text>
+              <Text style={styles.taskDate}>{item.createdAt}</Text>
+            </View>
+            
+            <View style={styles.actions}>
+              <TouchableOpacity onPress={() => context.toggleTaskStatus(item.id)} style={{ marginRight: 15 }}>
+                <Text style={{ fontSize: 20 }}>{item.status ? '✅' : '⬜'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => context.deleteTask(item.id)}>
+                <Text style={{ fontSize: 18, color: 'red' }}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       />
@@ -57,8 +68,10 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#E5E5E5', padding: 10, marginBottom: 10, borderRadius: 8 },
   addButton: { backgroundColor: '#007AFF', padding: 12, borderRadius: 8, alignItems: 'center' },
   buttonText: { color: '#FFF', fontWeight: 'bold' },
-  taskCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 10, marginBottom: 12, elevation: 2 },
+  taskCard: { flexDirection: 'row', backgroundColor: '#FFF', padding: 15, borderRadius: 10, marginBottom: 12, elevation: 2, alignItems: 'center' },
   taskTitle: { fontSize: 18, fontWeight: 'bold', color: '#2C3E50' },
+  completedText: { textDecorationLine: 'line-through', color: '#BDC3C7' },
   taskDescription: { fontSize: 14, color: '#7F8C8D', marginTop: 5 },
-  taskDate: { fontSize: 12, color: '#BDC3C7', marginTop: 8 }
+  taskDate: { fontSize: 12, color: '#BDC3C7', marginTop: 8 },
+  actions: { flexDirection: 'row', alignItems: 'center' }
 });

@@ -12,6 +12,8 @@ interface TaskContextType {
   tasks: Task[];
   loading: boolean;
   addTask: (title: string, description: string) => void;
+  toggleTaskStatus: (id: string) => void;
+  deleteTask: (id: string) => void;
 }
 
 export const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -55,8 +57,20 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     setTasks([newTask, ...tasks]);
   };
 
+  const toggleTaskStatus = (id: string) => {
+    const updatedTasks = tasks.map((task: Task) => 
+      task.id === id ? { ...task, status: !task.status } : task
+    );
+    setTasks(updatedTasks);
+  };
+
+  const deleteTask = (id: string) => {
+    const updatedTasks = tasks.filter((task: Task) => task.id !== id);
+    setTasks(updatedTasks);
+  };
+
   return (
-    <TaskContext.Provider value={{ tasks, loading, addTask }}>
+    <TaskContext.Provider value={{ tasks, loading, addTask, toggleTaskStatus, deleteTask }}>
       {children}
     </TaskContext.Provider>
   );
