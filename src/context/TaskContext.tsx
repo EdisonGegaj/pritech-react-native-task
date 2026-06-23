@@ -1,122 +1,119 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, ReactNode, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 export interface Task {
-  id: string;
+  id: number;
   title: string;
-  description: string;
-  status: boolean;
+  description?: string;
+  completed: boolean;
   createdAt: string;
 }
 
 interface TaskContextType {
   tasks: Task[];
   loading: boolean;
-  addTask: (title: string, description: string) => void;
-  toggleTaskStatus: (id: string) => void;
-  deleteTask: (id: string) => void;
+  filterStatus: 'All' | 'Active' | 'Completed';
   searchQuery: string;
+  setFilterStatus: (status: 'All' | 'Active' | 'Completed') => void;
   setSearchQuery: (query: string) => void;
-  filterStatus: 'all' | 'completed' | 'active';
-  setFilterStatus: (status: 'all' | 'completed' | 'active') => void;
+  addTask: (title: string, description: string) => void;
+  toggleTaskStatus: (id: number) => void;
+  deleteTask: (id: number) => void;
 }
 
-export const TaskContext = createContext<TaskContextType | undefined>(undefined);
+const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
-export const TaskProvider = ({ children }: { children: ReactNode }) => {
+export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'active'>('all');
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Active' | 'Completed'>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  // Kontrollojmë nëse ka detyra të ruajtura në telefon, nëse jo marrim nga API
-  const loadInitialData = async () => {
-    try {
-      const savedTasks = await AsyncStorage.getItem('@tasks');
-      if (savedTasks && JSON.parse(savedTasks).length > 0) {
-        setTasks(JSON.parse(savedTasks));
+    const loadTasks = async () => {
+      try {
+        const savedTasks = await AsyncStorage.getItem('@tasks');
+        if (savedTasks) {
+          setTasks(JSON.parse(savedTasks));
+          setLoading(false);
+        } else {
+          const response = await fetch('https://jsonplaceholder.typicode.com/todos?_limit=5');
+          const data = await response.json();
+          const initialTasks = data.map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            description: 'Detyre e importuar nga API',
+            completed: item.completed,
+            createdAt: new Date().toISOString(),
+          }));
+          setTasks(initialTasks);
+          await AsyncStorage.setItem('@tasks', JSON.stringify(initialTasks));
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error(error);
         setLoading(false);
-      } else {
-        await fetchPublicData();
       }
-    } catch (error) {
-      console.log("Gabim gjatë ngarkimit nga storage:", error);
-      setLoading(false);
-    }
-  };
+    };
+    loadTasks();
+  } , []);
 
-  const fetchPublicData = async () => {
-    try {
-      const response = await fetch('https://jsonplaceholder.typicode.com/todos?_limit=4');
-      const data = await response.json();
-      const apiTasks: Task[] = data.map((item: any) => ({
-        id: `api-${item.id}`,
-        title: item.title,
-        description: 'Detyrë e marrë automatikisht nga API.',
-        status: item.completed,
-        createdAt: new Date().toLocaleDateString('sq-AL')
-      }));
-      setTasks(apiTasks);
-      await AsyncStorage.setItem('@tasks', JSON.stringify(apiTasks));
-    } catch (error) {
-      console.log("Gabim:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Funksioni që ruan në state dhe në memorie njëkohësisht
-  const saveTasks = async (newTasks: Task[]) => {
-    setTasks(newTasks);
+  const saveToStorage = async (newTasks: Task[]) => {
     try {
       await AsyncStorage.setItem('@tasks', JSON.stringify(newTasks));
     } catch (error) {
-      console.log("Gabim gjatë ruajtjes:", error);
+      console.error(error);
     }
   };
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = 
-        filterStatus === 'all' ? true :
-        filterStatus === 'completed' ? task.status : !task.status;
-      return matchesSearch && matchesStatus;
-    });
-  }, [tasks, searchQuery, filterStatus]);
-
   const addTask = (title: string, description: string) => {
-    const newTask: Task = { id: Date.now().toString(), title, description, status: false, createdAt: new Date().toLocaleDateString('sq-AL') };
-    saveTasks([newTask, ...tasks]);
+    const newTask: Task = {
+      id: Date.now(),
+      title,
+      description,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [...tasks, newTask];
+    setTasks(updated);
+    saveToStorage(updated);
   };
 
-  const toggleTaskStatus = (id: string) => {
-    const updatedTasks = tasks.map(t => t.id === id ? { ...t, status: !t.status } : t);
-    saveTasks(updatedTasks);
+  const toggleTaskStatus = (id: number) => {
+    const updated = tasks.map(task =>
+      task.id === id ? { ...task, completed: !task.completed } : task
+    );
+    setTasks(updated);
+    saveToStorage(updated);
   };
 
-  const deleteTask = (id: string) => {
-    const updatedTasks = tasks.filter(t => t.id !== id);
-    saveTasks(updatedTasks);
+  const deleteTask = (id: number) => {
+    const updated = tasks.filter(task => task.id !== id);
+    setTasks(updated);
+    saveToStorage(updated);
   };
 
   return (
     <TaskContext.Provider value={{ 
-      tasks: filteredTasks, 
+      tasks, 
       loading, 
+      filterStatus, 
+      searchQuery, 
+      setFilterStatus, 
+      setSearchQuery, 
       addTask, 
       toggleTaskStatus, 
-      deleteTask, 
-      searchQuery, 
-      setSearchQuery,
-      filterStatus,
-      setFilterStatus
+      deleteTask 
     }}>
       {children}
     </TaskContext.Provider>
   );
+};
+
+export const useTasks = () => {
+  const context = useContext(TaskContext);
+  if (!context) {
+    throw new Error('useTasks duhet te perdoret brenda TaskProvider');
+  }
+  return context;
 };
