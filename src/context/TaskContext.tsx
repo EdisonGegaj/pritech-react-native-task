@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useEffect, useState } from 'react';
+import { createContext, ReactNode, useEffect, useMemo, useState } from 'react';
 
 export interface Task {
   id: string;
@@ -14,6 +14,8 @@ interface TaskContextType {
   addTask: (title: string, description: string) => void;
   toggleTaskStatus: (id: string) => void;
   deleteTask: (id: string) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 export const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -21,6 +23,7 @@ export const TaskContext = createContext<TaskContextType | undefined>(undefined)
 export const TaskProvider = ({ children }: { children: ReactNode }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchPublicData();
@@ -30,7 +33,6 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await fetch('https://jsonplaceholder.typicode.com/todos?_limit=4');
       const data = await response.json();
-      
       const apiTasks: Task[] = data.map((item: any) => ({
         id: `api-${item.id}`,
         title: item.title,
@@ -40,37 +42,41 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       }));
       setTasks(apiTasks);
     } catch (error) {
-      console.log("Gabim gjatë fetch-it", error);
+      console.log("Gabim:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => 
+      task.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [tasks, searchQuery]);
+
   const addTask = (title: string, description: string) => {
-    const newTask: Task = {
-      id: Date.now().toString(),
-      title,
-      description,
-      status: false,
-      createdAt: new Date().toLocaleDateString('sq-AL')
-    };
+    const newTask: Task = { id: Date.now().toString(), title, description, status: false, createdAt: new Date().toLocaleDateString('sq-AL') };
     setTasks([newTask, ...tasks]);
   };
 
   const toggleTaskStatus = (id: string) => {
-    const updatedTasks = tasks.map((task: Task) => 
-      task.id === id ? { ...task, status: !task.status } : task
-    );
-    setTasks(updatedTasks);
+    setTasks(tasks.map(t => t.id === id ? { ...t, status: !t.status } : t));
   };
 
   const deleteTask = (id: string) => {
-    const updatedTasks = tasks.filter((task: Task) => task.id !== id);
-    setTasks(updatedTasks);
+    setTasks(tasks.filter(t => t.id !== id));
   };
 
   return (
-    <TaskContext.Provider value={{ tasks, loading, addTask, toggleTaskStatus, deleteTask }}>
+    <TaskContext.Provider value={{ 
+      tasks: filteredTasks, 
+      loading, 
+      addTask, 
+      toggleTaskStatus, 
+      deleteTask, 
+      searchQuery, 
+      setSearchQuery 
+    }}>
       {children}
     </TaskContext.Provider>
   );

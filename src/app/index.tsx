@@ -4,12 +4,20 @@ import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, Toucha
 import { TaskContext } from '../context/TaskContext';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const context = useContext(TaskContext);
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const router = useRouter();
 
-  if (!context || context.loading) {
+  // Sigurohemi që context ekziston para se të bëjmë destructuring
+  if (!context) {
+    return null; 
+  }
+
+  const { tasks, loading, addTask, toggleTaskStatus, deleteTask, searchQuery, setSearchQuery } = context;
+
+  if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -19,10 +27,10 @@ export default function HomeScreen() {
 
   const handleAddTask = () => {
     if (!title.trim() || !description.trim()) {
-      Alert.alert('Gabim', 'Ju lutem plotësoni titullin dhe përshkrimin e detyrës!');
+      Alert.alert('Gabim', 'Ju lutem plotësoni titullin dhe përshkrimin!');
       return;
     }
-    context.addTask(title.trim(), description.trim());
+    addTask(title.trim(), description.trim());
     setTitle('');
     setDescription('');
   };
@@ -30,26 +38,26 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.form}>
-        <TextInput style={styles.input} placeholder="Titulli i detyrës..." value={title} onChangeText={setTitle} />
+        <TextInput style={styles.input} placeholder="Titulli..." value={title} onChangeText={setTitle} />
         <TextInput style={styles.input} placeholder="Përshkrimi..." value={description} onChangeText={setDescription} />
         <TouchableOpacity style={styles.addButton} onPress={handleAddTask}>
           <Text style={styles.buttonText}>+ Shto Detyrë</Text>
         </TouchableOpacity>
       </View>
 
+      <TextInput 
+        style={[styles.input, { backgroundColor: '#f0f0f0', marginTop: 10 }]} 
+        placeholder="Kërko detyra..." 
+        value={searchQuery} 
+        onChangeText={setSearchQuery} 
+      />
+
       <FlatList
-        data={context.tasks}
+        data={tasks}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.taskCard}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.taskTitle, item.status && styles.completedText]}>{item.title}</Text>
-              <Text style={styles.taskDescription}>{item.description}</Text>
-              <Text style={styles.taskDate}>{item.createdAt}</Text>
-            </View>
-            
-            <View style={styles.actions}>
-              <TouchableOpacity 
+            <TouchableOpacity 
               style={{ flex: 1 }} 
               onPress={() => router.push({
                 pathname: '/details',
@@ -66,6 +74,14 @@ export default function HomeScreen() {
               <Text style={styles.taskDescription} numberOfLines={1}>{item.description}</Text>
               <Text style={styles.taskDate}>{item.createdAt}</Text>
             </TouchableOpacity>
+
+            <View style={styles.actions}>
+              <TouchableOpacity onPress={() => toggleTaskStatus(item.id)} style={{ marginRight: 15 }}>
+                <Text style={{ fontSize: 20 }}>{item.status ? '✅' : '⬜'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => deleteTask(item.id)}>
+                <Text style={{ fontSize: 18, color: 'red' }}>🗑️</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
