@@ -16,6 +16,8 @@ interface TaskContextType {
   deleteTask: (id: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  filterStatus: 'all' | 'completed' | 'active'; // E re
+  setFilterStatus: (status: 'all' | 'completed' | 'active') => void; // E re
 }
 
 export const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -24,6 +26,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'active'>('all');
 
   useEffect(() => {
     fetchPublicData();
@@ -49,10 +52,14 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter(task => 
-      task.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [tasks, searchQuery]);
+  return tasks.filter(task => {
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = 
+      filterStatus === 'all' ? true :
+      filterStatus === 'completed' ? task.status : !task.status;
+    return matchesSearch && matchesStatus;
+  });
+}, [tasks, searchQuery, filterStatus]);
 
   const addTask = (title: string, description: string) => {
     const newTask: Task = { id: Date.now().toString(), title, description, status: false, createdAt: new Date().toLocaleDateString('sq-AL') };
@@ -68,16 +75,18 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <TaskContext.Provider value={{ 
-      tasks: filteredTasks, 
-      loading, 
-      addTask, 
-      toggleTaskStatus, 
-      deleteTask, 
-      searchQuery, 
-      setSearchQuery 
-    }}>
-      {children}
-    </TaskContext.Provider>
-  );
+  <TaskContext.Provider value={{ 
+    tasks: filteredTasks, 
+    loading, 
+    addTask, 
+    toggleTaskStatus, 
+    deleteTask, 
+    searchQuery, 
+    setSearchQuery,
+    filterStatus, // Shtoje këtu
+    setFilterStatus // Shtoje këtu
+  }}>
+    {children}
+  </TaskContext.Provider>
+);
 };

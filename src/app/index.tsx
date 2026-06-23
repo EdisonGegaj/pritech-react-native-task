@@ -10,12 +10,11 @@ export default function HomeScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  // Sigurohemi që context ekziston para se të bëjmë destructuring
   if (!context) {
-    return null; 
+    return <Text>Loading context...</Text>;
   }
-
-  const { tasks, loading, addTask, toggleTaskStatus, deleteTask, searchQuery, setSearchQuery } = context;
+  
+  const { tasks, loading, addTask, toggleTaskStatus, deleteTask, searchQuery, setSearchQuery, filterStatus, setFilterStatus } = context;
 
   if (loading) {
     return (
@@ -51,6 +50,19 @@ export default function HomeScreen() {
         value={searchQuery} 
         onChangeText={setSearchQuery} 
       />
+      <View style={styles.filterContainer}>
+        {(['all', 'active', 'completed'] as const).map(status => (
+          <TouchableOpacity 
+            key={status} 
+            style={[styles.filterButton, filterStatus === status && styles.activeFilter]} 
+            onPress={() => setFilterStatus(status)}
+          >
+            <Text style={filterStatus === status ? {color: '#FFF'} : {color: '#555'}}>
+              {status.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <FlatList
         data={tasks}
@@ -103,4 +115,7 @@ const styles = StyleSheet.create({
   taskDate: { fontSize: 12, color: '#BDC3C7', marginTop: 8 },
   completedText: { textDecorationLine: 'line-through', color: '#BDC3C7' },
   actions: { flexDirection: 'row', alignItems: 'center' },
+  filterContainer: { flexDirection: 'row', justifyContent: 'space-around', marginVertical: 10 },
+  filterButton: { paddingVertical: 6, paddingHorizontal: 15, borderRadius: 20, backgroundColor: '#E5E5E5' },
+  activeFilter: { backgroundColor: '#007AFF' },
 });
